@@ -3467,3 +3467,37 @@ textarea {
     }
 }
 
+
+
+/* =========================================
+   EXCLUSIVE DAILY SCHEDULE OPTION
+   ========================================= */
+
+.day-option.disabled {
+    cursor: not-allowed;
+}
+
+.day-option.disabled span {
+    border-color: #e1e6e4;
+
+    background: #edf0ef;
+    color: #9ba5a1;
+
+    box-shadow: none;
+
+    opacity: 0.72;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+.day-option.disabled span:hover {
+    border-color: #e1e6e4;
+
+    transform: none;
+}
+
+.schedule-days-help {
+    margin-top: 12px;
+}

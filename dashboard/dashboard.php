@@ -367,7 +367,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="stat-icon">✚</div>
 
                         <div>
-                            <p>Total medicines</p>
+                            <p>Total Medicines and/or Vitamins</p>
                             <h3><?= $totalMedicines ?></h3>
                         </div>
                     </article>

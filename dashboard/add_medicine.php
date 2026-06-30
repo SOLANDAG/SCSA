@@ -40,15 +40,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $scheduleDaysInput = $_POST['schedule_days'] ?? [];
     $scheduleDays = '';
 
-    if (is_array($scheduleDaysInput)) {
-        $scheduleDays = implode(
-            ', ',
-            array_map(
-                static fn ($day): string => trim((string) $day),
-                $scheduleDaysInput
-            )
-        );
+    if (!is_array($scheduleDaysInput)) {
+        $scheduleDaysInput = [];
     }
+
+    $scheduleDaysInput = array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static fn ($day): string =>
+                        trim((string) $day),
+                    $scheduleDaysInput
+                )
+            )
+        )
+    );
+
+    /*
+     * Daily already covers every day of the week.
+     * Keep it exclusive even if JavaScript is bypassed.
+     */
+    if (in_array('Daily', $scheduleDaysInput, true)) {
+        $scheduleDaysInput = ['Daily'];
+    }
+
+    $scheduleDays = implode(', ', $scheduleDaysInput);
 
     $allowedTypes = [
         'Medicine',
@@ -196,7 +212,7 @@ $todayDate = date('F d, Y');
 
     <link
         rel="stylesheet"
-        href="/SCSA_GROUP5/assets/css/dashboard.css?v=4"
+        href="/SCSA_GROUP5/assets/css/dashboard.css?v=17"
     >
 </head>
 
@@ -609,6 +625,9 @@ $todayDate = date('F d, Y');
                                                 value="<?= htmlspecialchars(
                                                     $day
                                                 ) ?>"
+                                                class="schedule-day-checkbox <?= $day === 'Daily'
+                                                    ? 'daily-checkbox'
+                                                    : 'weekday-checkbox' ?>"
                                                 <?= in_array(
                                                     $day,
                                                     $previousDays,
@@ -625,6 +644,11 @@ $todayDate = date('F d, Y');
                                     <?php endforeach; ?>
 
                                 </div>
+
+                                <p class="field-help schedule-days-help">
+                                    Select Daily for every day, or choose
+                                    individual weekdays.
+                                </p>
                             </fieldset>
                         </div>
 
@@ -655,6 +679,60 @@ $todayDate = date('F d, Y');
         </main>
 
     </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dailyCheckbox = document.querySelector(
+        '.daily-checkbox'
+    );
+
+    const weekdayCheckboxes = Array.from(
+        document.querySelectorAll('.weekday-checkbox')
+    );
+
+    if (!dailyCheckbox || weekdayCheckboxes.length === 0) {
+        return;
+    }
+
+    function updateScheduleDayState() {
+        const dailySelected = dailyCheckbox.checked;
+
+        weekdayCheckboxes.forEach(function (checkbox) {
+            if (dailySelected) {
+                checkbox.checked = false;
+            }
+
+            checkbox.disabled = dailySelected;
+
+            const option = checkbox.closest('.day-option');
+
+            if (option) {
+                option.classList.toggle(
+                    'disabled',
+                    dailySelected
+                );
+            }
+        });
+    }
+
+    dailyCheckbox.addEventListener('change', function () {
+        updateScheduleDayState();
+    });
+
+    weekdayCheckboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked) {
+                dailyCheckbox.checked = false;
+            }
+
+            updateScheduleDayState();
+        });
+    });
+
+    updateScheduleDayState();
+});
+</script>
 
 </body>
 </html>
