@@ -72,8 +72,11 @@ try {
  * Monday, Wednesday, Friday
  */
 try {
+    /*
+     * Retrieve all medicines scheduled today.
+     */
     $todayStatement = $pdo->prepare(
-        'SELECT
+        "SELECT
             id,
             medicine_name,
             medicine_type,
@@ -85,10 +88,10 @@ try {
          FROM medicines
          WHERE user_id = ?
          AND (
-             schedule_days = "Daily"
+             schedule_days = 'Daily'
              OR schedule_days LIKE ?
          )
-         ORDER BY schedule_time ASC'
+         ORDER BY schedule_time ASC"
     );
 
     $todayStatement->execute([
@@ -98,21 +101,58 @@ try {
 
     $todayMedicines = $todayStatement->fetchAll();
     $scheduledToday = count($todayMedicines);
+
+    /*
+     * Retrieve today's latest status
+     * for every medicine.
+     */
+    $todayStatuses = [];
+
+    $statusStatement = $pdo->prepare(
+        'SELECT
+            medicine_id,
+            status
+         FROM medication_history
+         WHERE user_id = ?
+         AND DATE(confirmed_at) = CURDATE()
+         ORDER BY id ASC'
+    );
+
+    $statusStatement->execute([$userId]);
+
+    foreach ($statusStatement->fetchAll() as $statusRow) {
+        $todayStatuses[
+            (int) $statusRow['medicine_id']
+        ] = $statusRow['status'];
+    }
+
+    /*
+     * Attach today's status to every medicine.
+     */
+    foreach ($todayMedicines as &$medicine) {
+        $currentMedicineId = (int) $medicine['id'];
+
+        $medicine['today_status'] =
+            $todayStatuses[$currentMedicineId]
+            ?? null;
+    }
+
+    unset($medicine);
 } catch (PDOException $exception) {
     $todayMedicines = [];
     $scheduledToday = 0;
 }
 
 /*
- * Count medicines marked as taken today.
+ * Count unique medicines marked as taken today.
  */
 try {
     $takenStatement = $pdo->prepare(
-        'SELECT COUNT(*)
+        'SELECT COUNT(DISTINCT medicine_id)
          FROM medication_history
          WHERE user_id = ?
          AND status = "Taken"
-         AND DATE(created_at) = CURDATE()'
+         AND DATE(confirmed_at) = CURDATE()'
     );
 
     $takenStatement->execute([$userId]);
@@ -163,7 +203,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
     <link
         rel="stylesheet"
-        href="/SCSA_GROUP5/assets/css/dashboard.css?v=1"
+        href="/SCSA_GROUP5/assets/css/dashboard.css?v=15"
     >
 </head>
 
@@ -180,8 +220,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
 
                 <div>
-                    <h1>Medicine</h1>
-                    <p>Tracker</p>
+                    <h1>Medicine &amp;</h1>
+                    <p>Vitamin Tracker</p>
                 </div>
             </div>
 
@@ -197,7 +237,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <span>Dashboard</span>
                 </a>
 
-                <a href="medicines.php">
+                <a href="medicine.php">
                     <span class="nav-icon">✚</span>
                     <span>My Medicines & Vitamins</span>
                 </a>
@@ -297,7 +337,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
 
                             <a
-                                href="medicines.php"
+                                href="medicine.php"
                                 class="dashboard-button secondary"
                             >
                                 View Medicine or Vitamin
@@ -449,6 +489,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
                                         $isLowStock =
                                             $quantity <= $lowStockLevel;
+
+                                        $todayStatus =
+                                            $medicine['today_status']
+                                            ?? '';
+
+                                        $isTakenToday =
+                                            $todayStatus === 'Taken';
                                         ?>
 
                                         <div class="medicine-item">
@@ -491,12 +538,28 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                                 </span>
                                             </div>
 
-                                            <a
-                                                href="mark_status.php?id=<?= (int) $medicine['id'] ?>&status=Taken"
-                                                class="take-button"
-                                            >
-                                                Mark taken
-                                            </a>
+                                            <?php if ($isTakenToday): ?>
+
+                                                <button
+                                                    type="button"
+                                                    class="take-button taken-disabled"
+                                                    disabled
+                                                    aria-disabled="true"
+                                                >
+                                                    ✓ Taken
+                                                </button>
+
+                                            <?php else: ?>
+
+                                                <a
+                                                    href="mark_status.php?id=<?= (int) $medicine['id'] ?>&status=Taken"
+                                                    class="take-button"
+                                                    onclick="return confirm('Mark this medicine as taken?');"
+                                                >
+                                                    Mark taken
+                                                </a>
+
+                                            <?php endif; ?>
 
                                         </div>
 
@@ -596,39 +659,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <?= $scheduledToday ?>
                                 scheduled medicines taken.
                             </p>
-
-                        </article>
-
-                        <article class="dashboard-card quick-actions-card">
-
-                            <div class="card-heading">
-                                <div>
-                                    <p class="card-label">
-                                        Shortcuts
-                                    </p>
-
-                                    <h2>Quick Actions</h2>
-                                </div>
-                            </div>
-
-                            <div class="quick-action-list">
-
-                                <a href="add_medicine.php">
-                                    <span>＋</span>
-                                    Add medicine
-                                </a>
-
-                                <a href="medicines.php">
-                                    <span>✚</span>
-                                    Manage medicines
-                                </a>
-
-                                <a href="history.php">
-                                    <span>◷</span>
-                                    View history
-                                </a>
-
-                            </div>
 
                         </article>
 

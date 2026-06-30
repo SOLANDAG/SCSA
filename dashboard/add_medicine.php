@@ -156,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             header(
-                'Location: medicines.php?message=added'
+                'Location: add_medicine.php?message=added'
             );
             exit;
         } catch (PDOException $exception) {
@@ -210,8 +210,8 @@ $todayDate = date('F d, Y');
                 <div class="brand-icon">+</div>
 
                 <div>
-                    <h1>Medicine</h1>
-                    <p>Tracker</p>
+                    <h1>Medicine &amp;</h1>
+                    <p>Vitamin Tracker</p>
                 </div>
             </div>
 
@@ -228,8 +228,8 @@ $todayDate = date('F d, Y');
                 </a>
 
                 <a
-                    href="medicines.php"
-                    class="<?= $currentPage === 'medicines.php'
+                    href="medicine.php"
+                    class="<?= $currentPage === 'medicine.php'
                         ? 'active'
                         : '' ?>"
                 >
